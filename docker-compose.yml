@@ -1,0 +1,57 @@
+version: '3.5'
+
+services:
+  postgres:
+    container_name: postgres_container
+    image: postgres:9.5
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      PGDATA: /data/postgres
+    volumes:
+      - ./iglu-server-config/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - postgres
+    restart: unless-stopped
+  
+  iglu-server:
+    container_name: iglu-server
+    image: snowplow-docker-registry.bintray.io/snowplow/iglu-server:0.4.0
+    # change host name iglu-postgres -> postgres
+    entrypoint: /usr/local/bin/wait-for-postgres.sh postgres --config /snowplow/config/application.conf
+    depends_on:
+      - postgres
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./iglu-server-config/wait-for-postgres.sh:/usr/local/bin/wait-for-postgres.sh
+      - ./iglu-server-config/application.conf:/snowplow/config/application.conf
+    environment:
+      - "SP_JAVA_OPTS=-Xms512m -Xmx512m"
+    networks: 
+      - postgres
+    restart: always
+
+  pgadmin:
+    container_name: pgadmin_container
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+    volumes:
+       - pgadmin:/root/.pgadmin
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    networks:
+      - postgres
+    restart: unless-stopped
+
+networks:
+  postgres:
+    driver: bridge
+
+volumes:
+    postgres:
+    pgadmin:

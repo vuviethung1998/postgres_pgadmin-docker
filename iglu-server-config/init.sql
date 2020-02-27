@@ -1,0 +1,4 @@
+CREATE USER sp_user WITH PASSWORD 'sp_password';
+ALTER USER sp_user WITH SUPERUSER;
+CREATE DATABASE igludb OWNER sp_user;
+GRANT ALL PRIVILEGES ON DATABASE igludb TO sp_user;
